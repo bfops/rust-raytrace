@@ -1,0 +1,18 @@
+[package]
+
+name = "raytrace"
+version = "0.0.0"
+authors = []
+
+[[bin]]
+
+name = "raytrace"
+path = "./src/mod.rs"
+
+[dependencies]
+cgmath = "*"
+glium = "*"
+glutin = "*"
+log = "*"
+rand = "*"
+time = "*"

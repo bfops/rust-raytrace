@@ -1,0 +1,7 @@
+*~
+*.sw[a-z]
+*.old
+*.bak
+Cargo.lock
+/doc/
+/target/
