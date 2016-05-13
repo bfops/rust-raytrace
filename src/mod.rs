@@ -8,6 +8,8 @@ extern crate rand;
 extern crate time;
 
 mod main;
+mod prelude;
+mod raytrace;
 mod scene;
 
 fn main() {

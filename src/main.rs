@@ -1,30 +1,15 @@
-use cgmath;
 use glium;
 use glutin;
 use std;
 use rand;
 use time;
 
+use prelude::*;
+use raytrace;
 use scene;
 
 fn solid_color(r: f32, g: f32, b: f32) -> scene::Texture {
   scene::Texture::SolidColor(RGB { r: r, g: g, b: b })
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct RGB {
-  pub r: f32,
-  pub g: f32,
-  pub b: f32,
-}
-
-unsafe impl Send for RGB {}
-
-unsafe impl glium::texture::PixelValue for RGB {
-  fn get_format() -> glium::texture::ClientFormat {
-    glium::texture::ClientFormat::F32F32F32
-  }
 }
 
 pub const WINDOW_WIDTH: u32 = 800;
@@ -44,26 +29,28 @@ pub fn main() {
       objects       :
         vec!(
           // red ball
-          scene::Object { center: cgmath::Vector3::new(-4.0,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 0.0, 0.0) },
+          scene::Object { center: Point::new(-4.0,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 0.0, 0.0) },
           // blue ball
-          scene::Object { center: cgmath::Vector3::new(-0.5,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, diffuseness: 0.01, texture: solid_color(0.0, 0.6, 1.0) },
+          scene::Object { center: Point::new(-0.5,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, diffuseness: 0.01, texture: solid_color(0.0, 0.6, 1.0) },
           // frosted glass ball
-          scene::Object { center: cgmath::Vector3::new(-0.7,   -0.5,  -1.5), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.8, diffuseness: 0.02, texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new(-0.7,   -0.5,  -1.5), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.8, diffuseness: 0.02, texture: solid_color(0.9, 0.9, 1.0) },
           // glass ball
-          scene::Object { center: cgmath::Vector3::new( 0.2,   -0.5,  -1.0), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, diffuseness: 0.0 , texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new( 0.2,   -0.5,  -1.0), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, diffuseness: 0.0 , texture: solid_color(0.9, 0.9, 1.0) },
           // brass ball
-          scene::Object { center: cgmath::Vector3::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 0.1 , texture: solid_color(1.0, 0.4, 0.1) },
+          scene::Object { center: Point::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 0.1 , texture: solid_color(1.0, 0.4, 0.1) },
           // small mirror ball
-          scene::Object { center: cgmath::Vector3::new( 3.0,   -1.0,  -3.5), radius:   1.0, emittance:  0.0, reflectance: 0.9, transmittance: 0.0, diffuseness: 0.0 , texture: solid_color(1.0, 1.0, 1.0) },
+          scene::Object { center: Point::new( 3.0,   -1.0,  -3.5), radius:   1.0, emittance:  0.0, reflectance: 0.9, transmittance: 0.0, diffuseness: 0.0 , texture: solid_color(1.0, 1.0, 1.0) },
           // light
-          scene::Object { center: cgmath::Vector3::new(-9.0,   10.0,   0.0), radius:   1.0, emittance:  1.0, reflectance: 0.0, transmittance: 1.0, diffuseness: 0.0 , texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new(-9.0,   10.0,   0.0), radius:   1.0, emittance:  1.0, reflectance: 0.0, transmittance: 1.0, diffuseness: 0.0 , texture: solid_color(0.9, 0.9, 1.0) },
           // walls
-          scene::Object { center: cgmath::Vector3::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 1.0, 1.0) },
+          //scene::Object { center: Point::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 1.0, 1.0) },
+          // floor
+          scene::Object { center: Point::new( 0.0, -102.0,   0.0), radius: 100.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 0.02, texture: solid_color(0.4, 0.2, 0.0) },
         ),
       fovy          : std::f32::consts::FRAC_PI_2,
-      eye           : cgmath::Vector3::new(0.0, 0.0,  0.0),
-      look          : cgmath::Vector3::new(0.0, 0.0, -1.0),
-      up            : cgmath::Vector3::new(0.0, 1.0,  0.0),
+      eye           : Point::new(0.0, 0.0,  0.0),
+      look          : Vector::new(0.0, 0.0, -1.0),
+      up            : Vector::new(0.0, 1.0,  0.0),
     };
 
   let w = WINDOW_WIDTH * 8;
@@ -96,7 +83,7 @@ pub fn main() {
     let h = h * scale;
 
     let before = time::precise_time_ns();
-    let rendered = scene.render(w, h, rand::Rng::next_u64(&mut make_random_seed));
+    let rendered = raytrace::scene(&scene, w, h, rand::Rng::next_u64(&mut make_random_seed));
     let after = time::precise_time_ns();
     println!("Render took {:?}ms", (after - before) as f32 / 1_000_000.0);
 
@@ -104,7 +91,7 @@ pub fn main() {
       glium::texture::Texture2d::with_format(
         &window,
         glium::texture::RawImage2d {
-          data: std::borrow::Cow::Owned(rendered),
+          data: std::borrow::Cow::Owned(rendered.to_vec()),
           width: w,
           height: h,
           format: glium::texture::ClientFormat::F32F32F32,

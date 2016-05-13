@@ -1,15 +1,49 @@
-use cgmath;
-
-use main::RGB;
+use prelude::*;
 
 pub struct Object {
-  pub center        : cgmath::Vector3<f32>,
+  pub center        : Point,
   pub radius        : f32,
   pub diffuseness   : f32,
   pub emittance     : f32,
   pub reflectance   : f32,
   pub transmittance : f32,
   pub texture       : Texture,
+}
+
+fn either_or_join<T, F: FnOnce(T, T) -> T>(f: F, x: Option<T>, y: Option<T>) -> Option<T> {
+  match (x, y) {
+    (None    , None)    => None,
+    (x       , None)    => x,
+    (None    , y)       => y,
+    (Some(x) , Some(y)) => Some(f(x, y)),
+  }
+}
+
+impl Object {
+  pub fn toi(&self, ray: &Ray) -> Option<f32> {
+    // quadratic coefficients
+    let a = dot(&ray.direction, &ray.direction);
+    let to_center = ray.origin - self.center;
+    let b = 2.0 * dot(&to_center, &ray.direction);
+    let c = dot(&to_center, &to_center) - self.radius*self.radius;
+
+    // discriminant
+    let d = b*b - 4.0*a*c;
+
+    if d < 0.0 {
+      return None;
+    }
+
+    let d = d.sqrt();
+    let a = 2.0 * a;
+
+    let s1 = (d - b) / a;
+    let s1 = if s1 >= 0.0 { Some(s1) } else { None };
+    let s2 = (-d - b) / a;
+    let s2 = if s2 >= 0.0 { Some(s2) } else { None };
+
+    either_or_join(f32::min, s1, s2)
+  }
 }
 
 pub enum Texture {
@@ -19,40 +53,25 @@ pub enum Texture {
 pub struct T {
   pub objects       : Vec<Object>,
   pub fovy          : f32,
-  pub eye           : cgmath::Vector3<f32>,
-  pub look          : cgmath::Vector3<f32>,
-  pub up            : cgmath::Vector3<f32>,
+  pub eye           : Point,
+  pub look          : Vector,
+  pub up            : Vector,
 }
 
 impl T {
-  pub fn move_camera(&mut self, v: &cgmath::Vector3<f32>) {
+  pub fn move_camera(&mut self, v: &Vector) {
     self.eye = self.eye + v;
   }
 
-  pub fn x(&self) -> cgmath::Vector3<f32> {
+  pub fn x(&self) -> Vector {
     self.look.cross(self.up)
   }
 
-  pub fn y(&self) -> cgmath::Vector3<f32> {
+  pub fn y(&self) -> Vector {
     self.up
   }
 
-  pub fn z(&self) -> cgmath::Vector3<f32> {
+  pub fn z(&self) -> Vector {
     self.look
-  }
-
-  pub fn render(&self, width: u32, height: u32, random_seed: u64) -> Vec<RGB> {
-    let mut r = vec!();
-    for y in 0 .. height {
-      for x in 0 .. width {
-        r.push(RGB {
-          r: x as f32 / width as f32,
-          g: y as f32 / height as f32,
-          b: 0.0,
-        });
-      }
-    }
-
-    r
   }
 }
