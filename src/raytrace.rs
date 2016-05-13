@@ -36,37 +36,65 @@ struct Work {
   pub attenuation : RGB,
 }
 
-fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<&'a scene::Object> {
-  let mut collision = None;
+fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<scene::Collision<'a>> {
+  let mut first_collision: Option<scene::Collision<'a>> = None;
 
   for object in &s.objects {
-    let toi = object.toi(ray);
-    if let Some(toi) = toi {
-      if let Some((best_toi, _)) = collision {
-        if toi >= best_toi {
+    if let Some(collision) = object.intersect_ray(ray) {
+      if let Some(first_collision) = first_collision.as_ref() {
+        if first_collision.toi < collision.toi {
           continue
         }
       }
-      collision = Some((toi, object));
+      first_collision = Some(collision);
     }
   }
 
-  collision.map(|(_, obj)| obj)
+  first_collision
 }
 
-fn trace(s: &scene::T, ray: &Ray) -> RGB {
-  let collided_object =
-    match cast(s, ray) {
-      None => return RGB { r: 0.0, g: 0.0, b: 0.0 },
-      Some(obj) => obj,
-    };
-  match collided_object.texture {
-    scene::Texture::SolidColor(color) => color,
+fn do_work<AddWork: FnMut(Work)>(
+  s: &scene::T,
+  work: &Work,
+  add_work: &mut AddWork,
+  output: &mut Output,
+) {
+  let min_attenuation = 0.01;
+  if work.attenuation.r < min_attenuation &&
+     work.attenuation.g < min_attenuation &&
+     work.attenuation.b < min_attenuation {
+    return
   }
-}
 
-fn do_work(s: &scene::T, work: &Work, output: &mut Output) {
-  *output.pixel_mut(work.pixel_x, work.pixel_y) = work.attenuation * trace(s, &work.ray);
+  let collision =
+    match cast(s, &work.ray) {
+      None => return,
+      Some(c) => c,
+    };
+  let color =
+    match collision.object.texture {
+      scene::Texture::SolidColor(color) => color,
+    };
+
+  let color = work.attenuation * color;
+
+  let next_ray = {
+    let direction = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
+    Ray {
+      direction : direction,
+      origin    : collision.location + 0.01 * direction,
+    }
+  };
+  add_work(
+    Work {
+      ray         : next_ray,
+      attenuation : color,
+      pixel_x     : work.pixel_x,
+      pixel_y     : work.pixel_y,
+    }
+  );
+
+  *output.pixel_mut(work.pixel_x, work.pixel_y) += color;
 }
 
 pub fn scene(s: &scene::T, width: u32, height: u32, random_seed: u64) -> Output {
@@ -95,7 +123,7 @@ pub fn scene(s: &scene::T, width: u32, height: u32, random_seed: u64) -> Output 
           ray         :
             Ray {
               origin    : s.eye,
-              direction : normalize(&(view_to_world * ray)),
+              direction : normalize(view_to_world * ray),
             },
           pixel_x     : x,
           pixel_y     : y,
@@ -106,7 +134,8 @@ pub fn scene(s: &scene::T, width: u32, height: u32, random_seed: u64) -> Output 
   }
 
   while let Some(work) = work_items.pop_front() {
-    do_work(s, &work, &mut output);
+    let mut add_work = |work| work_items.push_back(work);
+    do_work(s, &work, &mut add_work, &mut output);
   }
 
   output

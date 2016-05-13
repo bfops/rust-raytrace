@@ -1,5 +1,12 @@
 use prelude::*;
 
+pub struct Collision<'a> {
+  pub object   : &'a Object,
+  pub toi      : f32,
+  pub location : Point,
+  pub normal   : Vector,
+}
+
 pub struct Object {
   pub center        : Point,
   pub radius        : f32,
@@ -20,12 +27,12 @@ fn either_or_join<T, F: FnOnce(T, T) -> T>(f: F, x: Option<T>, y: Option<T>) -> 
 }
 
 impl Object {
-  pub fn toi(&self, ray: &Ray) -> Option<f32> {
+  pub fn intersect_ray<'a>(&'a self, ray: &Ray) -> Option<Collision<'a>> {
     // quadratic coefficients
-    let a = dot(&ray.direction, &ray.direction);
+    let a = dot(ray.direction, ray.direction);
     let to_center = ray.origin - self.center;
-    let b = 2.0 * dot(&to_center, &ray.direction);
-    let c = dot(&to_center, &to_center) - self.radius*self.radius;
+    let b = 2.0 * dot(to_center, ray.direction);
+    let c = dot(to_center, to_center) - self.radius*self.radius;
 
     // discriminant
     let d = b*b - 4.0*a*c;
@@ -43,6 +50,15 @@ impl Object {
     let s2 = if s2 >= 0.0 { Some(s2) } else { None };
 
     either_or_join(f32::min, s1, s2)
+      .map(|toi| {
+        let location = ray.origin + toi*ray.direction;
+        Collision {
+          object   : self,
+          toi      : toi,
+          location : location,
+          normal   : normalize(location - self.center),
+        }
+      })
   }
 }
 
