@@ -1,7 +1,6 @@
 use glium;
 use glutin;
 use std;
-use rand;
 use time;
 
 use prelude::*;
@@ -43,7 +42,7 @@ pub fn main() {
           // light
           scene::Object { center: Point::new(-9.0,   10.0,   0.0), radius:   1.0, emittance:  1.0, reflectance: 0.0, transmittance: 1.0, diffuseness: 0.0 , texture: solid_color(0.9, 0.9, 1.0) },
           // walls
-          //scene::Object { center: Point::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 1.0, 1.0) },
+          scene::Object { center: Point::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, diffuseness: 1.0 , texture: solid_color(1.0, 1.0, 1.0) },
           // floor
           scene::Object { center: Point::new( 0.0, -102.0,   0.0), radius: 100.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, diffuseness: 0.02, texture: solid_color(0.4, 0.2, 0.0) },
         ),
@@ -53,13 +52,10 @@ pub fn main() {
       up            : Vector::new(0.0, 1.0,  0.0),
     };
 
-  let inv_min_scale = 1 << 4;
+  let inv_min_scale = 1 << 0;
   let w = WINDOW_WIDTH / inv_min_scale;
   let h = WINDOW_HEIGHT / inv_min_scale;
-  let max_scale = 1 << 0;
-
-  let mut make_random_seed: rand::XorShiftRng =
-    rand::SeedableRng::from_seed([0x12345678, 0x9abcdef0, 0x89765432, 0x12324121]);
+  let max_scale = inv_min_scale << 0;
 
   let framebuffer_texture = {
     let w = w * max_scale;
@@ -84,7 +80,7 @@ pub fn main() {
     let h = h * scale;
 
     let before = time::precise_time_ns();
-    let rendered = raytrace::scene(&scene, w, h, rand::Rng::next_u64(&mut make_random_seed));
+    let rendered = raytrace::scene(&scene, w, h);
     let after = time::precise_time_ns();
     println!("Render took {:?}ms", (after - before) as f32 / 1_000_000.0);
 
@@ -112,13 +108,9 @@ pub fn main() {
           },
         blend:
           glium::Blend {
-            color:
-              glium::BlendingFunction::Addition {
-                source: glium::LinearBlendingFactor::ConstantAlpha,
-                destination: glium::LinearBlendingFactor::OneMinusConstantAlpha,
-              },
+            color: glium::BlendingFunction::AlwaysReplace,
             alpha: glium::BlendingFunction::AlwaysReplace,
-            constant_value: (0.1, 0.1, 0.1, 1.0 / (1.0 + stationary_frames_drawn as f32)),
+            constant_value: (0.0, 0.0, 0.0, 0.0),
           },
         .. Default::default()
       };
@@ -129,23 +121,6 @@ pub fn main() {
       .minify_filter(glium::uniforms::MinifySamplerFilter::LinearMipmapLinear);
 
     draw(&window, source, &mut framebuffer, &draw_parameters);
-
-    let draw_parameters =
-      glium::DrawParameters {
-        depth:
-          glium::Depth {
-            test: glium::DepthTest::Overwrite,
-            write: false,
-            .. Default::default()
-          },
-        blend:
-          glium::Blend {
-            color: glium::BlendingFunction::AlwaysReplace,
-            alpha: glium::BlendingFunction::AlwaysReplace,
-            constant_value: (0.0, 0.0, 0.0, 0.0),
-          },
-        .. Default::default()
-      };
 
     let source =
       glium::uniforms::Sampler::new(&framebuffer_texture)

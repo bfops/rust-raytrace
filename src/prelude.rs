@@ -73,3 +73,14 @@ impl std::ops::Mul for RGB {
     }
   }
 }
+
+impl std::ops::Mul<f32> for RGB {
+  type Output = RGB;
+  fn mul(self, rhs: f32) -> Self::Output {
+    RGB {
+      r: self.r * rhs,
+      g: self.g * rhs,
+      b: self.b * rhs,
+    }
+  }
+}

@@ -53,7 +53,7 @@ fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<scene::Collision<'a>> {
   first_collision
 }
 
-fn do_work<AddWork: FnMut(Work)>(
+fn do_work<AddWork: FnMut(Work)> (
   s: &scene::T,
   work: &Work,
   add_work: &mut AddWork,
@@ -78,26 +78,39 @@ fn do_work<AddWork: FnMut(Work)>(
 
   let color = work.attenuation * color;
 
-  let next_ray = {
-    let direction = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
-    Ray {
-      direction : direction,
-      origin    : collision.location + 0.01 * direction,
+  *output.pixel_mut(work.pixel_x, work.pixel_y) += color * collision.object.emittance;
+
+  let make_ray = {
+    let location = collision.location;
+    move |direction| {
+      Ray {
+        direction : direction,
+        origin    : location + 0.01 * direction,
+      }
     }
   };
-  add_work(
-    Work {
-      ray         : next_ray,
-      attenuation : color,
-      pixel_x     : work.pixel_x,
-      pixel_y     : work.pixel_y,
-    }
-  );
 
-  *output.pixel_mut(work.pixel_x, work.pixel_y) += color;
+  let make_work = {
+    let pixel_x = work.pixel_x;
+    let pixel_y = work.pixel_y;
+    move |ray, attenuation| {
+      Work {
+        ray         : ray,
+        attenuation : attenuation,
+        pixel_x     : pixel_x,
+        pixel_y     : pixel_y,
+      }
+    }
+  };
+
+  let reflected = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
+  add_work(make_work(make_ray(reflected), color * collision.object.reflectance));
+
+  let transmitted = work.ray.direction;
+  add_work(make_work(make_ray(transmitted), color * collision.object.transmittance));
 }
 
-pub fn scene(s: &scene::T, width: u32, height: u32, random_seed: u64) -> Output {
+pub fn scene(s: &scene::T, width: u32, height: u32) -> Output {
   let mut output = Output::new(width, height);
   let mut work_items = std::collections::VecDeque::new();
 
