@@ -53,8 +53,9 @@ pub fn main() {
       up            : Vector::new(0.0, 1.0,  0.0),
     };
 
-  let w = WINDOW_WIDTH * 8;
-  let h = WINDOW_HEIGHT * 8;
+  let inv_min_scale = 1 << 4;
+  let w = WINDOW_WIDTH / inv_min_scale;
+  let h = WINDOW_HEIGHT / inv_min_scale;
   let max_scale = 1 << 0;
 
   let mut make_random_seed: rand::XorShiftRng =

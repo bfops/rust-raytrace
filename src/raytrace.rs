@@ -55,10 +55,13 @@ fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<&'a scene::Object> {
 }
 
 fn trace(s: &scene::T, ray: &Ray) -> RGB {
-  if cast(s, ray).is_some() {
-    RGB { r: 1.0, g: 0.0, b: 0.0 }
-  } else {
-    RGB { r: 0.0, g: 0.0, b: 0.0 }
+  let collided_object =
+    match cast(s, ray) {
+      None => return RGB { r: 0.0, g: 0.0, b: 0.0 },
+      Some(obj) => obj,
+    };
+  match collided_object.texture {
+    scene::Texture::SolidColor(color) => color,
   }
 }
 
