@@ -37,7 +37,7 @@ pub fn main() {
           // glass ball
           scene::Object { center: Point::new( 0.2,   -0.5,  -1.0), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, shininess: 2.0 , texture: solid_color(0.9, 0.9, 1.0) },
           // brass ball
-          scene::Object { center: Point::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 0.8 , texture: solid_color(1.0, 0.4, 0.1) },
+          scene::Object { center: Point::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 1.0 , texture: solid_color(1.0, 0.4, 0.1) },
           // small mirror ball
           scene::Object { center: Point::new( 3.0,   -1.0,  -3.5), radius:   1.0, emittance:  0.0, reflectance: 0.9, transmittance: 0.0, shininess: 2.0 , texture: solid_color(1.0, 1.0, 1.0) },
           // light
@@ -56,7 +56,7 @@ pub fn main() {
   let inv_min_scale = 1 << 5;
   let w = WINDOW_WIDTH / inv_min_scale;
   let h = WINDOW_HEIGHT / inv_min_scale;
-  let max_scale = inv_min_scale << 0;
+  let max_scale = inv_min_scale << 1;
 
   let framebuffer_texture = {
     let w = w * max_scale;

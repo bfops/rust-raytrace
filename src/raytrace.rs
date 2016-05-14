@@ -57,12 +57,20 @@ fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<scene::Collision<'a>> {
 fn perturb<Rng: rand::Rng>(unperturbed: Vector, normal: Vector, shininess: f32, rng: &mut Rng) -> Vector {
   let rotation = {
     let y = unperturbed;
-    let x = normalize(cross(normal, y));
+    let x =
+      if unperturbed.x <= 0.5 {
+        // specialized cross-product for crossing with x axis
+        Vector::new(0.0, unperturbed.z, -unperturbed.y)
+      } else {
+        // specialized cross-product for crossing with y axis
+        Vector::new(-unperturbed.z, 0.0, unperturbed.x)
+      };
+    let x = normalize(x);
     let z = cross(y, x);
     Matrix::from_cols(x, y, z)
   };
 
-  for _ in 0..8 {
+  for _ in 0..4 {
     let altitude = rng.next_f32().asin();
     let altitude = std::f32::consts::FRAC_PI_2 * (altitude / std::f32::consts::FRAC_PI_2).powf(shininess.exp());
     let altitude = std::f32::consts::FRAC_PI_2 - altitude;
