@@ -10,7 +10,7 @@ pub struct Collision<'a> {
 pub struct Object {
   pub center        : Point,
   pub radius        : f32,
-  pub diffuseness   : f32,
+  pub shininess     : f32,
   pub emittance     : f32,
   pub reflectance   : f32,
   pub transmittance : f32,

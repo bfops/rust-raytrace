@@ -1,3 +1,4 @@
+use rand;
 use std;
 
 use prelude::*;
@@ -53,9 +54,35 @@ fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<scene::Collision<'a>> {
   first_collision
 }
 
-fn do_work<AddWork: FnMut(Work)> (
+fn perturb<Rng: rand::Rng>(unperturbed: Vector, normal: Vector, shininess: f32, rng: &mut Rng) -> Vector {
+  let rotation = {
+    let y = unperturbed;
+    let x = normalize(cross(normal, y));
+    let z = cross(y, x);
+    Matrix::from_cols(x, y, z)
+  };
+
+  for _ in 0..8 {
+    let altitude = rng.next_f32().asin();
+    let altitude = std::f32::consts::FRAC_PI_2 * (altitude / std::f32::consts::FRAC_PI_2).powf(shininess.exp());
+    let altitude = std::f32::consts::FRAC_PI_2 - altitude;
+    let azimuth = rng.next_f32() * 2.0 * std::f32::consts::PI;
+    let xz = altitude.cos();
+    let direction = rotation * Vector::new(azimuth.cos() * xz, altitude.sin(), azimuth.sin() * xz);
+    if dot(direction, normal) >= 0.0 {
+      return direction
+    }
+  }
+
+  // If we failed this many times, we're probably hitting some corner case (e.g. divide-by-zero).
+
+  unperturbed
+}
+
+fn do_work<Rng: rand::Rng, AddWork: FnMut(Work)> (
   s: &scene::T,
   work: &Work,
+  rng: &mut Rng,
   add_work: &mut AddWork,
   output: &mut Output,
 ) {
@@ -104,13 +131,15 @@ fn do_work<AddWork: FnMut(Work)> (
   };
 
   let reflected = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
+  let reflected = perturb(reflected, collision.normal, collision.object.shininess, rng);
   add_work(make_work(make_ray(reflected), color * collision.object.reflectance));
 
   let transmitted = work.ray.direction;
+  let transmitted = perturb(transmitted, -collision.normal, collision.object.shininess, rng);
   add_work(make_work(make_ray(transmitted), color * collision.object.transmittance));
 }
 
-pub fn scene(s: &scene::T, width: u32, height: u32) -> Output {
+pub fn scene<Rng: rand::Rng>(s: &scene::T, width: u32, height: u32, rng: &mut Rng) -> Output {
   let mut output = Output::new(width, height);
   let mut work_items = std::collections::VecDeque::new();
 
@@ -148,7 +177,7 @@ pub fn scene(s: &scene::T, width: u32, height: u32) -> Output {
 
   while let Some(work) = work_items.pop_front() {
     let mut add_work = |work| work_items.push_back(work);
-    do_work(s, &work, &mut add_work, &mut output);
+    do_work(s, &work, rng, &mut add_work, &mut output);
   }
 
   output

@@ -18,6 +18,10 @@ mod dumb_submodule {
   pub fn dot(v1: super::Vector, v2: super::Vector) -> f32 {
     v1.dot(v2)
   }
+
+  pub fn cross(v1: super::Vector, v2: super::Vector) -> super::Vector {
+    v1.cross(v2)
+  }
 }
 
 pub use self::dumb_submodule::*;
