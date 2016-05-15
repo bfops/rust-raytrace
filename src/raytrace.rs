@@ -23,8 +23,8 @@ impl Output {
     self.data.get_mut((y * self.w + x) as usize).unwrap()
   }
 
-  pub fn to_vec(self) -> Vec<RGB> {
-    self.data
+  pub fn as_vec(&self) -> &Vec<RGB> {
+    &self.data
   }
 }
 
@@ -35,6 +35,11 @@ struct Work {
   pub pixel_x     : u32,
   pub pixel_y     : u32,
   pub attenuation : RGB,
+}
+
+pub struct T {
+  output : Output,
+  work   : std::collections::VecDeque<Work>,
 }
 
 fn cast<'a>(s: &'a scene::T, ray: &Ray) -> Option<scene::Collision<'a>> {
@@ -87,69 +92,9 @@ fn perturb<Rng: rand::Rng>(unperturbed: Vector, normal: Vector, shininess: f32, 
   unperturbed
 }
 
-fn do_work<Rng: rand::Rng, AddWork: FnMut(Work)> (
-  s: &scene::T,
-  work: &Work,
-  rng: &mut Rng,
-  add_work: &mut AddWork,
-  output: &mut Output,
-) {
-  let min_attenuation = 0.01;
-  if work.attenuation.r < min_attenuation &&
-     work.attenuation.g < min_attenuation &&
-     work.attenuation.b < min_attenuation {
-    return
-  }
-
-  let collision =
-    match cast(s, &work.ray) {
-      None => return,
-      Some(c) => c,
-    };
-  let color =
-    match collision.object.texture {
-      scene::Texture::SolidColor(color) => color,
-    };
-
-  let color = work.attenuation * color;
-
-  *output.pixel_mut(work.pixel_x, work.pixel_y) += color * collision.object.emittance;
-
-  let make_ray = {
-    let location = collision.location;
-    move |direction| {
-      Ray {
-        direction : direction,
-        origin    : location + 0.01 * direction,
-      }
-    }
-  };
-
-  let make_work = {
-    let pixel_x = work.pixel_x;
-    let pixel_y = work.pixel_y;
-    move |ray, attenuation| {
-      Work {
-        ray         : ray,
-        attenuation : attenuation,
-        pixel_x     : pixel_x,
-        pixel_y     : pixel_y,
-      }
-    }
-  };
-
-  let reflected = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
-  let reflected = perturb(reflected, collision.normal, collision.object.shininess, rng);
-  add_work(make_work(make_ray(reflected), color * collision.object.reflectance));
-
-  let transmitted = work.ray.direction;
-  let transmitted = perturb(transmitted, -collision.normal, collision.object.shininess, rng);
-  add_work(make_work(make_ray(transmitted), color * collision.object.transmittance));
-}
-
-pub fn scene<Rng: rand::Rng>(s: &scene::T, width: u32, height: u32, rng: &mut Rng) -> Output {
-  let mut output = Output::new(width, height);
-  let mut work_items = std::collections::VecDeque::new();
+pub fn new(s: &scene::T, width: u32, height: u32) -> T {
+  let output = Output::new(width, height);
+  let mut work = std::collections::VecDeque::new();
 
   let aspect = width as f32 / height as f32;
   let max_y = (s.fovy / 2.0).tan();
@@ -168,7 +113,7 @@ pub fn scene<Rng: rand::Rng>(s: &scene::T, width: u32, height: u32, rng: &mut Rn
           1.0,
         );
 
-      work_items.push_back(
+      work.push_back(
         Work {
           ray         :
             Ray {
@@ -183,10 +128,74 @@ pub fn scene<Rng: rand::Rng>(s: &scene::T, width: u32, height: u32, rng: &mut Rn
     }
   }
 
-  while let Some(work) = work_items.pop_front() {
-    let mut add_work = |work| work_items.push_back(work);
-    do_work(s, &work, rng, &mut add_work, &mut output);
+  T {
+    output     : output,
+    work : work,
+  }
+}
+
+impl T {
+  pub fn tick<Rng: rand::Rng>(&mut self, scene: &scene::T, rng: &mut Rng) {
+    let work =
+      match self.work.pop_front() {
+        None => return,
+        Some(w) => w,
+      };
+
+    let min_attenuation = 0.01;
+    if work.attenuation.r < min_attenuation &&
+       work.attenuation.g < min_attenuation &&
+       work.attenuation.b < min_attenuation {
+      return
+    }
+
+    let collision =
+      match cast(scene, &work.ray) {
+        None => return,
+        Some(c) => c,
+      };
+    let color =
+      match collision.object.texture {
+        scene::Texture::SolidColor(color) => color,
+      };
+
+    let color = work.attenuation * color;
+
+    *self.output.pixel_mut(work.pixel_x, work.pixel_y) += color * collision.object.emittance;
+
+    let make_ray = {
+      let location = collision.location;
+      move |direction| {
+        Ray {
+          direction : direction,
+          origin    : location + 0.01 * direction,
+        }
+      }
+    };
+
+    let make_work = {
+      let pixel_x = work.pixel_x;
+      let pixel_y = work.pixel_y;
+      move |ray, attenuation| {
+        Work {
+          ray         : ray,
+          attenuation : attenuation,
+          pixel_x     : pixel_x,
+          pixel_y     : pixel_y,
+        }
+      }
+    };
+
+    let reflected = work.ray.direction - 2.0 * dot(work.ray.direction, collision.normal) * collision.normal;
+    let reflected = perturb(reflected, collision.normal, collision.object.shininess, rng);
+    self.work.push_back(make_work(make_ray(reflected), color * collision.object.reflectance));
+
+    let transmitted = work.ray.direction;
+    let transmitted = perturb(transmitted, -collision.normal, collision.object.shininess, rng);
+    self.work.push_back(make_work(make_ray(transmitted), color * collision.object.transmittance));
   }
 
-  output
+  pub fn output<'a>(&'a self) -> &'a Output {
+    &self.output
+  }
 }

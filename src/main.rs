@@ -2,7 +2,6 @@ use glium;
 use glutin;
 use rand;
 use std;
-use time;
 
 use prelude::*;
 use raytrace;
@@ -53,10 +52,10 @@ pub fn main() {
       up            : Vector::new(0.0, 1.0,  0.0),
     };
 
-  let inv_min_scale = 1 << 5;
+  let inv_min_scale = 1 << 0;
   let w = WINDOW_WIDTH / inv_min_scale;
   let h = WINDOW_HEIGHT / inv_min_scale;
-  let max_scale = inv_min_scale << 1;
+  let max_scale = inv_min_scale << 0;
 
   let framebuffer_texture = {
     let w = w * max_scale;
@@ -75,6 +74,8 @@ pub fn main() {
   let mut framebuffer = glium::framebuffer::SimpleFrameBuffer::new(&window, &framebuffer_texture).unwrap();
 
   let mut rng: rand::XorShiftRng = rand::SeedableRng::from_seed([0x12345678, 0x9abcdef0, 0x13371337, 0x98765432]);
+  let mut raytracer = raytrace::new(&scene, w, h);
+  let mut prev_scale = 1;
 
   let mut stationary_frames_drawn = 0;
   loop {
@@ -82,16 +83,20 @@ pub fn main() {
     let w = w * scale;
     let h = h * scale;
 
-    let before = time::precise_time_ns();
-    let rendered = raytrace::scene(&scene, w, h, &mut rng);
-    let after = time::precise_time_ns();
-    println!("Render took {:?}ms", (after - before) as f32 / 1_000_000.0);
+    if scale != prev_scale {
+      raytracer = raytrace::new(&scene, w, h);
+      prev_scale = scale;
+    }
+
+    for _ in 0..100_000 {
+      raytracer.tick(&scene, &mut rng);
+    }
 
     let rendered =
       glium::texture::Texture2d::with_format(
         &window,
         glium::texture::RawImage2d {
-          data: std::borrow::Cow::Owned(rendered.to_vec()),
+          data: std::borrow::Cow::Borrowed(raytracer.output().as_vec()),
           width: w,
           height: h,
           format: glium::texture::ClientFormat::F32F32F32,
@@ -145,6 +150,7 @@ pub fn main() {
           let v = $v;
           scene.move_camera(&v);
           stationary_frames_drawn = 0;
+          raytracer = raytrace::new(&scene, w, h);
         };
       }
 
