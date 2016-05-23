@@ -88,3 +88,18 @@ impl std::ops::Mul<f32> for RGB {
     }
   }
 }
+
+// http://http.developer.nvidia.com/Cg/asin.html
+pub fn asin(x: f32) -> f32 {
+  let negate = (x < 0.0) as u32 as f32;
+  let x = x.abs();
+  let mut ret = -0.0187293;
+  ret *= x;
+  ret += 0.0742610;
+  ret *= x;
+  ret -= 0.2121144;
+  ret *= x;
+  ret += 1.5707288;
+  ret = 3.14159265358979*0.5 - (1.0 - x).sqrt()*ret;
+  ret - 2.0 * negate * ret
+}

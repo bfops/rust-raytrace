@@ -28,23 +28,23 @@ pub fn main() {
       objects       :
         vec!(
           // red ball
-          scene::Object { center: Point::new(-4.0,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 0.0, texture: solid_color(1.0, 0.0, 0.0) },
+          scene::Object { center: Point::new(-4.0,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 1.0, texture: solid_color(1.0, 0.0, 0.0) },
           // blue ball
-          scene::Object { center: Point::new(-0.5,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, shininess: 0.5, texture: solid_color(0.0, 0.6, 1.0) },
+          scene::Object { center: Point::new(-0.5,   -1.0,  -5.0), radius:   1.0, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, shininess: 1.5, texture: solid_color(0.0, 0.6, 1.0) },
           // frosted glass ball
-          scene::Object { center: Point::new(-0.7,   -0.5,  -1.5), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.8, shininess: 0.8, texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new(-0.7,   -0.5,  -1.5), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.8, shininess: 3.0, texture: solid_color(0.9, 0.9, 1.0) },
           // glass ball
-          scene::Object { center: Point::new( 0.2,   -0.5,  -1.0), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, shininess: 2.0, texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new( 0.2,   -0.5,  -1.0), radius:   0.5, emittance:  0.0, reflectance: 0.1, transmittance: 0.9, shininess: 8.0, texture: solid_color(0.9, 0.9, 1.0) },
           // brass ball
-          scene::Object { center: Point::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 0.1, texture: solid_color(1.0, 0.4, 0.1) },
+          scene::Object { center: Point::new( 3.0,    1.5, -10.0), radius:   4.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 1.5, texture: solid_color(1.0, 0.4, 0.1) },
           // small mirror ball
-          scene::Object { center: Point::new( 3.0,   -1.0,  -3.5), radius:   1.0, emittance:  0.0, reflectance: 0.9, transmittance: 0.0, shininess: 2.0, texture: solid_color(1.0, 1.0, 1.0) },
+          scene::Object { center: Point::new( 3.0,   -1.0,  -3.5), radius:   1.0, emittance:  0.0, reflectance: 0.9, transmittance: 0.0, shininess: 8.0, texture: solid_color(1.0, 1.0, 1.0) },
           // light
-          scene::Object { center: Point::new(-9.0,   10.0,   0.0), radius:   1.0, emittance:  1.0, reflectance: 0.0, transmittance: 1.0, shininess: 2.0, texture: solid_color(0.9, 0.9, 1.0) },
+          scene::Object { center: Point::new(-9.0,   10.0,   0.0), radius:   1.0, emittance:  1.0, reflectance: 0.0, transmittance: 1.0, shininess: 8.0, texture: solid_color(0.9, 0.9, 1.0) },
           // walls
-          scene::Object { center: Point::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, shininess: 2.0, texture: solid_color(1.0, 1.0, 1.0) },
+          scene::Object { center: Point::new( 0.0,    0.0,   0.0), radius:  20.0, emittance:  0.2, reflectance: 0.0, transmittance: 0.0, shininess: 8.0, texture: solid_color(1.0, 1.0, 1.0) },
           // floor
-          scene::Object { center: Point::new( 0.0, -102.0,   0.0), radius: 100.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 0.5, texture: solid_color(0.4, 0.2, 0.0) },
+          scene::Object { center: Point::new( 0.0, -102.0,   0.0), radius: 100.0, emittance:  0.0, reflectance: 1.0, transmittance: 0.0, shininess: 1.5, texture: solid_color(0.4, 0.2, 0.0) },
         ),
       fovy          : std::f32::consts::FRAC_PI_2,
       eye           : Point::new(0.0, 0.0,  0.0),
@@ -179,6 +179,7 @@ pub fn main() {
   }
 }
 
+#[inline(never)]
 fn draw<'a, Dest: glium::Surface>(
   window: &glium::backend::glutin_backend::GlutinFacade,
   source: glium::uniforms::Sampler<'a, glium::Texture2d>,

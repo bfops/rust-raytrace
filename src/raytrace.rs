@@ -75,13 +75,14 @@ fn perturb<Rng: rand::Rng>(unperturbed: Vector, normal: Vector, shininess: f32, 
     Matrix::from_cols(x, y, z)
   };
 
+  let azimuth = rng.next_f32() * 2.0 * std::f32::consts::PI;
+  let (z, x) = azimuth.sin_cos();
   for _ in 0..4 {
-    let altitude = rng.next_f32().asin();
-    let altitude = std::f32::consts::FRAC_PI_2 * (altitude / std::f32::consts::FRAC_PI_2).powf(shininess.exp());
+    let altitude = asin(rng.next_f32());
+    let altitude = std::f32::consts::FRAC_PI_2 * (altitude / std::f32::consts::FRAC_PI_2).powf(shininess);
     let altitude = std::f32::consts::FRAC_PI_2 - altitude;
-    let azimuth = rng.next_f32() * 2.0 * std::f32::consts::PI;
-    let xz = altitude.cos();
-    let direction = rotation * Vector::new(azimuth.cos() * xz, altitude.sin(), azimuth.sin() * xz);
+    let (y, xz) = altitude.sin_cos();
+    let direction = rotation * Vector::new(x * xz, y, z * xz);
     if dot(direction, normal) >= 0.0 {
       return direction
     }
